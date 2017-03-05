@@ -9,3 +9,11 @@ Copy all files to your MATLAB - OCTAVE documents directory.
 
 ## SUPPORTED VVOR FILES
 To use VVOR you need the exported .csv results file from ICS Impulse version 4.0 ® (Only English or Spanish location are supported). If there are more than one test results on the file only the last test will be loaded (you can delete other existing VVOR test from .csv file easily using a text editor)
+
+### Disclosure
+VVOR is an experimental software never use it with diagnostic purposes. 
+The VVOR software is free and open source, see the source code for copying conditions and copyright terms.
+There is ABSOLUTELY NO WARRANTY, not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+
+Thank you very much for your interest in our software, 
+The authors.
