@@ -32,22 +32,27 @@ if s ~= 1
         else
             left = false;
         end
-        if isOctave
-            [peaks,locs] = findpeaks(abs(eInt),'MinPeakHeight',240,'MinPeakDistance',10);
-        else
-            [peaks,locs] = findpeaks(abs(eInt),'MinPeakHeight',240,'SortStr','descend');
-        end
-        
-        if ~isempty(locs)
-            latency = tInt(locs(1))-tInt(1);
-            sacadePositions = horzcat(sacadePositions,tInt(locs(1)));
-            if left
-                latencyMatrixL = horzcat(latencyMatrixL,latency);
+        [preCheck,~] = size(eInt);
+        if preCheck > 3
+            if isOctave
+                [peaks,locs] = findpeaks(abs(eInt),'MinPeakHeight',240,'MinPeakDistance',10);
             else
-                latencyMatrixR = horzcat(latencyMatrixR,latency);
+                [peaks,locs] = findpeaks(abs(eInt),'MinPeakHeight',240,'SortStr','descend');
+            end
+            
+            if ~isempty(locs)
+                latency = tInt(locs(1))-tInt(1);
+                sacadePositions = horzcat(sacadePositions,tInt(locs(1)));
+                if left
+                    latencyMatrixL = horzcat(latencyMatrixL,latency);
+                else
+                    latencyMatrixR = horzcat(latencyMatrixR,latency);
+                end
+            else
+                %disp('No peak found') %Debug
             end
         else
-            %disp('No peak found') %Debug
+            disp(["Not enought data in iteration: ",num2str(n)])
         end
         n = n + 1;
     end
