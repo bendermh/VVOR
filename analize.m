@@ -169,7 +169,7 @@ lHeadPeaks(lHeadInvalids) = [];
 rHeadPeaks(rHeadInvalids) = [];
 [lPeakN, ~] = size(lHeadPeaks);
 [rPeakN, ~] = size(rHeadPeaks);
-[lPR,rPR,saccadePositions] = prScore(t,e,h,s);
+[lPR,rPR,saccadePositions] = prScoreVVR(t,e,h,s);
 
 %PR PLOT only available in VVOR tests
 if s ~= 1
