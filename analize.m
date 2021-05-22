@@ -24,7 +24,25 @@ if s == 1
 else
     desacE = medfilt1(e,30);
 end
-%get positive/neagtive data
+
+%get positive/neagtive data RAW
+limitRaw = size(t);
+posHRaw = [];
+posERaw = [];
+negHRaw = [];
+negERaw = [];
+for n = 1:limitRaw
+    if h(n) >= 0
+        posHRaw = vertcat(posHRaw,h(n));
+        posERaw = vertcat(posERaw,e(n));
+    end
+    if h(n) < 0
+        negHRaw = vertcat(negHRaw,h(n));
+        negERaw = vertcat(negERaw,e(n));
+    end
+end
+
+%get positive/neagtive data desaccade 
 limit = size(t);
 posH = [];
 posE = [];
@@ -75,6 +93,32 @@ posB = posH\posE;
 calcNegE = negB*negH;
 calcPosE = posB*posH;
 
+%Fourier gain
+[fHead,P1Head] = fourier(h);
+[fEye,P1Eye] = fourier(e);
+[fHeadLeft,P1HeadLeft] = fourier(posHRaw);
+[fHeadRight,P1HeadRight] = fourier(negHRaw);
+[fEyeLeft,P1EyeLeft] = fourier(posERaw);
+[fEyeRight,P1EyeRight] = fourier(negERaw);
+[maxTestValue,maxTestPos] = max(P1Head);
+maxFreqHead = fHead(maxTestPos);
+%Find closest frequencies in Left and Right data
+[~,idxHLeft]= min(abs(fHeadLeft-maxFreqHead));
+freqHeadLeft = fHeadLeft(idxHLeft);
+powHeadLeft = P1HeadLeft (idxHLeft);
+[~,idxELeft]= min(abs(fEyeLeft-maxFreqHead));
+freqEyeLeft = fEyeLeft(idxELeft);
+powEyeLeft = P1EyeLeft (idxELeft);
+[~,idxHRight]= min(abs(fHeadRight-maxFreqHead));
+freqHeadRight = fHeadRight(idxHRight);
+powHeadRight = P1HeadRight (idxHRight);
+[~,idxERight]= min(abs(fEyeRight-maxFreqHead));
+freqEyeRight = fEyeRight(idxERight);
+powEyeRight = P1EyeRight (idxERight);
+%GainValues
+leftFourGain = powEyeLeft/powHeadLeft;
+rightFourGain = powEyeRight/powHeadRight;
+
 %%%%% PLOTS SECTION %%%%%
 
 %RAW plot
@@ -94,17 +138,6 @@ xlabel('Time in secs')
 ylabel('Velocity in deg/sec')
 ylim([-400 +400])
 legend ('Head velocity','Eye velocity')
-
-% %Positive-Negative plots
-% subplot(3,2,5)
-% plot([posH,posE],'LineWidth',1.25)
-% title('Positive vs Negative data - Desaccaded data')
-% xlabel('Time in samples')
-% ylabel('Velocity in deg/sec')
-% hold on
-% plot([negH,negE],'LineWidth',1.25)
-% hold off
-% legend ('Head velocity','Eye velocity','Head velocity','Eye velocity')
 
 %XY ploy & regresion line
 subplot(3,2,6)
@@ -130,10 +163,9 @@ else
 end
 hold off
 %axis square
-%Fourier plots
+
+%Fourier plot
 subplot(3,2,3)
-[fHead,P1Head] = fourier(h);
-[fEye,P1Eye] = fourier(e);
 hold on
 stem(fHead,P1Head,'b');
 title('Single-Side Amplitude Spectrum of Head and Eye - RAW data')
@@ -143,20 +175,22 @@ xlim([0 5])
 stem(fEye,P1Eye,'r');
 legend('Head','Eye')
 hold off
-%Desacade Fourier
-subplot(3,2,4)
-[fHead,P1Head] = fourier(h);
-[fEye,P1Eye] = fourier(desacE);
-hold on
-stem(fHead,P1Head,'b');
-title('Single-Side Amplitude Spectrum of Head and Eye - Desaccaded data')
-xlabel('f (Hz)')
-ylabel('|P1(f)|')
-xlim([0 5])
-stem(fEye,P1Eye,'r');
-legend('Head','Eye')
-hold off
 
+%Fourier gain plot
+subplot(3,2,4)
+x = categorical({'Left','Right'});
+yGFData = [powHeadLeft powEyeLeft; powHeadRight powEyeRight];
+hold on
+barFourier = bar(x,yGFData);
+labelGainFourier = ['Gain values in Fourier Analysis - ', ' Left gain : ',num2str(leftFourGain),' Right gain: ',num2str(rightFourGain)];
+title(labelGainFourier)
+xLabelTextFour = ['Left oscillation freq (Hz): ', num2str(freqHeadLeft),' - Right oscillation freq (Hz): ',num2str(freqHeadRight)];
+xlabel(xLabelTextFour)
+ylabel('|P1(f)|')
+legend('Head','Eye')
+barFourier(1).FaceColor = 'b';
+barFourier(2).FaceColor = 'r';
+hold off
 
 %Analysis of head oscillations variability:
 distanciaPicos = 60;
@@ -191,7 +225,7 @@ end
 
 %%%%%%%%%Output analysis results to text%%%%%%%%%%%%
 
-resultG = strcat('GAIN RESULTS: ',' Left(area): ',num2str(gainPos),' Right(area): ',num2str(gainNeg),' || Left(slope): ',num2str(posB),' Right(slope): ',num2str(negB),' || Head Max(º/s):  ', num2str(peakH),' Eye Max: ',num2str(peakE));
+resultG = strcat('Movement data: ',' Head Max(º/s):  ', num2str(peakH),' Eye Max: ',num2str(peakE));
 if s~= 1
     resultPR = strcat('PR RESULTS: ',' Left PR Score: ',num2str(lPR),' Right PR score: ',num2str(rPR),' || Left/Right peaks > 25º/s: ',num2str(lPeakN),'/',num2str(rPeakN),' || Left/Right velocity SD of peaks: ',num2str(std(lHeadPeaks)),'/',num2str(std(rHeadPeaks)));
 else
