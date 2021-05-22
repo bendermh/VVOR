@@ -178,18 +178,28 @@ hold off
 
 %Fourier gain plot
 subplot(3,2,4)
-x = categorical({'Left','Right'});
+if ~isOctave
+    x = categorical({'Left','Right'});
+end
 yGFData = [powHeadLeft powEyeLeft; powHeadRight powEyeRight];
 hold on
-barFourier = bar(x,yGFData);
+if isOctave
+    barFourier = bar(yGFData);
+else
+    barFourier = bar(x,yGFData);
+end
+
 labelGainFourier = ['Gain values in Fourier Analysis - ', ' Left gain : ',num2str(leftFourGain),' Right gain: ',num2str(rightFourGain)];
 title(labelGainFourier)
 xLabelTextFour = ['Left oscillation freq (Hz): ', num2str(freqHeadLeft),' - Right oscillation freq (Hz): ',num2str(freqHeadRight)];
 xlabel(xLabelTextFour)
 ylabel('|P1(f)|')
 legend('Head','Eye')
-barFourier(1).FaceColor = 'b';
-barFourier(2).FaceColor = 'r';
+if ~isOctave
+    barFourier(1).FaceColor = 'b';
+    barFourier(2).FaceColor = 'r';
+end
+
 hold off
 
 %Analysis of head oscillations variability:

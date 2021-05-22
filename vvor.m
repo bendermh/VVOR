@@ -1,4 +1,8 @@
 % Jorge Rey Martinez 2021 version 2.0
+if isOctave
+   pkg load signal
+end
+
 s = 0;
 
 question = questdlg('Do you want to read the data from VVOR or from VVORS (suppressed) test?','Select test to read','VVOR','VORS (suppressed)','VVOR');
