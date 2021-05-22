@@ -64,11 +64,5 @@ if s ~= 1
     if rSize > 3
         rPR = round(((std(latencyMatrixR))/(mean(latencyMatrixR)))*100);
     end
-    if lPR > 100
-        lPR = 100;
-    end
-    if rPR > 100
-        rPR = 100;
-    end
 end
 end
