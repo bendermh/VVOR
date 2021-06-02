@@ -33,7 +33,8 @@ if s ~= 1
             left = false;
         end
         [preCheck,~] = size(eInt);
-        if preCheck > 3
+        [preCheckSec,~] = max(abs(hInt));
+        if preCheck > 3 && preCheckSec > 15 % Set a minimum eye width of 3 samples and minimum head peak velocity to 15
             if isOctave
                 [peaks,locs] = findpeaks(abs(eInt),'MinPeakHeight',140,'MinPeakDistance',30);
             else
@@ -52,7 +53,7 @@ if s ~= 1
                 %disp('No peak found') %Debug
             end
         else
-            disp(["Not enought data in iteration: ",num2str(n)])
+            disp(["Not enought data in segment: ",num2str(n)])
         end
         n = n + 1;
     end

@@ -66,8 +66,6 @@ aucNegEye = trapz(negE);
 aucNegHead = trapz(negH);
 gainPos = (aucPosEye/aucPosHead);
 gainNeg = (aucNegEye/aucNegHead);
-%velGainPos = mean(findpeaks(posE))/mean(findpeaks(posH));
-%velGainNeg = mean(findpeaks(abs(negE)))/mean(findpeaks(abs(negH)));
 
 %Eye Head Regression Gain
 negB = negH\negE;
@@ -75,88 +73,25 @@ posB = posH\posE;
 calcNegE = negB*negH;
 calcPosE = posB*posH;
 
-%%%%% PLOTS SECTION %%%%%
-
-%RAW plot
-subplot(3,2,1)
-plot(t,h,'b',t,e,'r','LineWidth',1.25)
-title('Test Output - RAW data')
-xlabel('Time in secs')
-ylabel('Velocity in deg/sec')
-ylim([-400 +400])
-legend ('Head velocity','Eye velocity')
-%Desaccaded plot
-subplot(3,2,2)
-plot(t,h,'b',t,desacE,'r','LineWidth',1.25)
-AUCTitle = strcat('Test Output - Desaccaded data  - ',' LEFT GAIN: ',num2str(gainPos),' -RIGHT GAIN: ',num2str(gainNeg));
-title(AUCTitle)
-xlabel('Time in secs')
-ylabel('Velocity in deg/sec')
-ylim([-400 +400])
-legend ('Head velocity','Eye velocity')
-
-% %Positive-Negative plots
-% subplot(3,2,5)
-% plot([posH,posE],'LineWidth',1.25)
-% title('Positive vs Negative data - Desaccaded data')
-% xlabel('Time in samples')
-% ylabel('Velocity in deg/sec')
-% hold on
-% plot([negH,negE],'LineWidth',1.25)
-% hold off
-% legend ('Head velocity','Eye velocity','Head velocity','Eye velocity')
-
-%XY ploy & regresion line
-subplot(3,2,6)
-hold on
-if isOctave
-    scatter(negH,negE,'c','.');
-    scatter(posH,posE,'b','.');
-else
-    scatter(negH,negE,'.b');
-    scatter(posH,posE,'.','MarkerEdgeColor',[0 .7 .7]);
-end
-XYTitle = strcat('Head vs Eye plot - Desaccaded data',' LEFT GAIN: ',num2str(posB),' -RIGHT GAIN: ',num2str(negB));
-title(XYTitle)
-xlabel('Head Velocity in deg/sec')
-ylabel('Eye Velocity in deg/sec')
-plot(negH,calcNegE,posH,calcPosE,'LineWidth',5)
-if s == 1
-    plot(negH,negH,'r',posH,posH,'r','LineWidth',1.5)
-    legend ('Negative data','Positive data','Negative regresion','Positive regresion','No Suppression line','Location','northwest')
-else
-    plot(negH,negH,'g',posH,posH,'g','LineWidth',1.5)
-    legend ('Negative data','Positive data','Negative regresion','Positive regresion','Normality line','Location','northwest')
-end
-hold off
-%axis square
-%Fourier plots
-subplot(3,2,3)
-[fHead,P1Head] = fourier(h);
-[fEye,P1Eye] = fourier(e);
-hold on
-stem(fHead,P1Head,'b');
-title('Single-Side Amplitude Spectrum of Head and Eye - RAW data')
-xlabel('f (Hz)')
-ylabel('|P1(f)|')
-xlim([0 5])
-stem(fEye,P1Eye,'r');
-legend('Head','Eye')
-hold off
-%Desacade Fourier
-subplot(3,2,4)
-[fHead,P1Head] = fourier(h);
-[fEye,P1Eye] = fourier(desacE);
-hold on
-stem(fHead,P1Head,'b');
-title('Single-Side Amplitude Spectrum of Head and Eye - Desaccaded data')
-xlabel('f (Hz)')
-ylabel('|P1(f)|')
-xlim([0 5])
-stem(fEye,P1Eye,'r');
-legend('Head','Eye')
-hold off
-
+%Fourier based Gain calcullation algorithm
+headThreshold = 20; % Set minimum head velocity for frequency analysis
+[dataEyeR,dataEyeL,dataHeadR,dataHeadL] = splitTest(desacE,h,headThreshold);
+[fHeadL,P1HeadL] = fourier(dataHeadL);
+[fEyeL,P1EyeL] = fourier(dataEyeL);
+[fHeadR,P1HeadR] = fourier(dataHeadR);
+[fEyeR,P1EyeR] = fourier(dataEyeR);
+[maxHeadPwrR,HeadPwrRIndex] = max(P1HeadR);
+[maxHeadPwrL,HeadPwrLIndex] = max(P1HeadL);
+maxHeadRFreq = fHeadR(HeadPwrRIndex);
+maxHeadLFreq = fHeadL(HeadPwrLIndex);
+[preMaxEyeRFreq,maxEyeRFreqIndex]=min(abs(fEyeR-maxHeadRFreq));
+[preMaxEyeLFreq,maxEyeLFreqIndex]=min(abs(fEyeL-maxHeadLFreq));
+maxEyeRFreq = fEyeR(maxEyeRFreqIndex);
+maxEyeLFreq = fEyeL(maxEyeLFreqIndex);
+maxEyeRPwr = P1EyeR(maxEyeRFreqIndex);
+maxEyeLPwr = P1EyeL(maxEyeLFreqIndex);
+leftFouGain = (maxEyeLPwr/maxHeadPwrL);
+rightFouGain = (maxEyeRPwr/maxHeadPwrR);
 
 %Analysis of head oscillations variability:
 distanciaPicos = 60;
@@ -175,7 +110,7 @@ rHeadPeaks(rHeadInvalids) = [];
 if s ~= 1
     subplot(3,2,5)
     plot(t,h,'b',t,e,'r','LineWidth',1.5)
-    prTitle = strcat('Saccade Recognition & PR Plot: ', '  Left PR:',num2str(lPR),',  Right PR: ',num2str(rPR));
+    prTitle = strcat('Saccade Recognition & PR Plot || ', '  LEFT PR:',num2str(lPR),',  RIGHT PR: ',num2str(rPR));
     title(prTitle)
     xlabel('Time in samples')
     ylabel('Velocity in deg/sec')
@@ -189,11 +124,139 @@ if s ~= 1
 end
 
 
+
+%%%%% PLOTS SECTION %%%%%
+
+%RAW plot
+subplot(3,2,1)
+plot(t,h,'b',t,e,'r','LineWidth',1.25)
+title('Test Output - RAW data')
+xlabel('Time in secs')
+ylabel('Velocity in deg/sec')
+ylim([-400 +400])
+legend ('Head velocity','Eye velocity')
+
+%Desaccaded plot
+subplot(3,2,2)
+plot(t,h,'b',t,desacE,'r','LineWidth',1.25)
+AUCTitle = strcat('Test Output - Desaccaded data  || ',' LEFT GAIN: ',num2str(gainPos),' - RIGHT GAIN: ',num2str(gainNeg));
+title(AUCTitle)
+xlabel('Time in secs')
+ylabel('Velocity in deg/sec')
+ylim([-400 +400])
+legend ('Head velocity','Eye velocity')
+
+
+%XY ploy & regresion line
+subplot(3,2,6)
+hold on
+if isOctave
+    scatter(negH,negE,'c','.');
+    scatter(posH,posE,'b','.');
+else
+    scatter(negH,negE,'.b');
+    scatter(posH,posE,'.','MarkerEdgeColor',[0 .7 .7]);
+end
+XYTitle = strcat('Head vs Eye plot - Desaccaded data ||',' LEFT GAIN: ',num2str(posB),' - RIGHT GAIN: ',num2str(negB));
+title(XYTitle)
+xlabel('Head Velocity in deg/sec')
+ylabel('Eye Velocity in deg/sec')
+plot(negH,calcNegE,posH,calcPosE,'LineWidth',5)
+if s == 1
+    plot(negH,negH,'r',posH,posH,'r','LineWidth',1.5)
+    legend ('Negative data','Positive data','Negative regresion','Positive regresion','No Suppression line','Location','northwest')
+else
+    plot(negH,negH,'g',posH,posH,'g','LineWidth',1.5)
+    legend ('Negative data','Positive data','Negative regresion','Positive regresion','Normality line','Location','northwest')
+end
+hold off
+%axis square
+
+%Fourier plot
+subplot(3,2,3)
+[fHead,P1Head] = fourier(h);
+[fEye,P1Eye] = fourier(e);
+[~,ixx] = max(P1Head);
+maxFreqHeadFour = fHead(ixx);
+hold on
+stem(fHead,P1Head,'b');
+fourierTitle = strcat('Single-Side Amplitude Spectrum of Head and Eye (RAW) || Head Freq(Hz): ',num2str(maxFreqHeadFour));
+title(fourierTitle)
+xlabel('f (Hz)')
+ylabel('|P1(f)|')
+xlim([0 5])
+stem(fEye,P1Eye,'r');
+legend('Head','Eye')
+hold off
+
+%Fourier gain plot
+subplot(3,2,4)
+axis off
+hold on
+plotBar = bar([maxHeadPwrL maxEyeLPwr;maxHeadPwrR maxEyeRPwr],'hist');
+gainFtitle = strcat(['Fourier Gain || LEFT(1): ',num2str(leftFouGain),' - RIGHT(2): ',num2str(rightFouGain)]);
+title(gainFtitle)
+legend('Head','Eye','Location','eastoutside');
+if ~isOctave
+    plotBar(1).FaceColor = 'b';
+    plotBar(2).FaceColor = 'r';
+end
+hold off
+
+% For FourierGain debug purposes only (uncoment next section)
+% fgFigure = figure;
+% subplot(2,2,3)
+% hold on
+% stem(fHeadL,P1HeadL,'b');
+% title('Single-Side Amplitude Spectrum of Head and Eye (Desaccaded) || LEFT')
+% xlabel('f (Hz)')
+% ylabel('|P1(f)|')
+% xlim([0 5])
+% stem(fEyeL,P1EyeL,'r');
+% legend('Head','Eye')
+% hold off
+% 
+% subplot(2,2,4)
+% hold on
+% stem(fHeadR,P1HeadR,'b');
+% title('Single-Side Amplitude Spectrum of Head and Eye (Desaccaded) || RIGHT')
+% xlabel('f (Hz)')
+% ylabel('|P1(f)|')
+% xlim([0 5])
+% stem(fEyeR,P1EyeR,'r');
+% legend('Head','Eye')
+% hold off
+% 
+% subplot(2,2,1)
+% hold on
+% plot(dataHeadL,'b','LineWidth',1.25)
+% plot(dataEyeL,'r','LineWidth',1.25)
+% hold off
+% title('Test Output - LEFT SIDE')
+% xlabel('Samples')
+% ylabel('Velocity in deg/sec')
+% ylim([-400 +400])
+% legend ('Head velocity','Eye velocity')
+% 
+% subplot(2,2,2)
+% hold on
+% plot(dataHeadR,'b','LineWidth',1.25)
+% plot(dataEyeR,'r','LineWidth',1.25)
+% hold off
+% title('Test Output - RIGHT SIDE')
+% xlabel('Samples')
+% ylabel('Velocity in deg/sec')
+% ylim([-400 +400])
+% legend ('Head velocity','Eye velocity')
+% 
+% set(0, 'currentfigure', figure1);
+
+
 %%%%%%%%%Output analysis results to text%%%%%%%%%%%%
 
-resultG = strcat('GAIN RESULTS: ',' Left(area): ',num2str(gainPos),' Right(area): ',num2str(gainNeg),' || Left(slope): ',num2str(posB),' Right(slope): ',num2str(negB),' || Head Max(º/s):  ', num2str(peakH),' Eye Max: ',num2str(peakE));
+resultG = strcat('GAIN RESULTS: ',' Left(area): ',num2str(gainPos),' Right(area): ',num2str(gainNeg),' || Left(slope): ',num2str(posB),' Right(slope): ',num2str(negB),' || Left(Fourier): ',num2str(leftFouGain),' Right(Fourier): ',num2str(rightFouGain),' || Head Max(º/s):  ', num2str(peakH),' Eye Max: ',num2str(peakE));
 if s~= 1
-    resultPR = strcat('PR RESULTS: ',' Left PR Score: ',num2str(lPR),' Right PR score: ',num2str(rPR),' || Left/Right peaks > 25º/s: ',num2str(lPeakN),'/',num2str(rPeakN),' || Left/Right velocity SD of peaks: ',num2str(std(lHeadPeaks)),'/',num2str(std(rHeadPeaks)));
+    resultPR = strcat('PR RESULTS: ',' Left PR Score: ',num2str(lPR),' Right PR score: ',num2str(rPR),' || Left/Right head peaks > 25º/s: ',num2str(lPeakN),'/',num2str(rPeakN),' || Left/Right velocity SD of head peaks: ',num2str(std(lHeadPeaks)),'/',num2str(std(rHeadPeaks)));
 else
     resultPR = 'PR score is not available for VORS - supression - testing';
 end
@@ -211,4 +274,6 @@ set(figure1,'MenuBar','figure');
 disp(resultG);
 disp(resultPR);
 end
+
+
 
