@@ -17,13 +17,13 @@ eyeData = '';
 headData = '';
 commaDelimiter = 0;
 while ischar(tline)
-    if readnow == 3
+    if readnow == 4
         timeData = tline;
     end
-    if readnow == 4
+    if readnow == 5
         eyeData = tline;
     end
-    if readnow == 5
+    if readnow == 6
         headData = tline;
         break
     end
