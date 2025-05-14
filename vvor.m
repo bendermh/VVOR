@@ -1,6 +1,12 @@
-% VVOR new version designed to be used with new vHIT devices using the RAW file as data source
+% VVOR parser and launcher — compatible with MATLAB and Octave
+% Supports RVVO, VVOR, SRVO, VORS (Horizontal) test formats
 
 function vvor()
+    if isOctave
+        pkg load signal
+        disp('WARNING: OCTAVE results have not been validated, and may be inaccurate, especially for saccade detection & PR score.');
+    end
+
     % Ask the user to select a .txt file
     [file, path] = uigetfile('*.txt', 'Select a test data file');
     if isequal(file, 0)
@@ -83,16 +89,21 @@ function vvor()
 
     % Get selected test and call the corresponding analysis function
     selected = tests(selIndex);
+    tipo = selected.Type;
 
-    if strcmp(selected.Type, 'RVVO — Horizontal')
-        rawTime = selected.Data(:, 1);
-        t = (rawTime - rawTime(1)) / 10000000;  % Normalize to 0 and convert ms to seconds
-        h = selected.Data(:, 2);
-        e = selected.Data(:, 3);
+    if contains(tipo, 'RVVO — Horizontal') || contains(tipo, 'VVOR — Horizontal')
         s = 0;
-        display(t)
-        analizeVOR(t, e, h, s);
+    elseif contains(tipo, 'VORS - Horizontal') || contains(tipo, 'SRVO — Horizontal')
+        s = 1;
     else
-        warndlg(sprintf("Test type not supported yet: %s", selected.Type), 'Not Implemented');
+        warndlg(sprintf("Test type not supported yet: %s", tipo), 'Not Implemented');
+        return;
     end
+
+    rawTime = selected.Data(:, 1);
+    t = (rawTime - rawTime(1)) / 10000000;  % Normalize to 0 and convert to seconds
+    h = selected.Data(:, 2);
+    e = selected.Data(:, 3);
+
+    launchAnalysisWindow(t, e, h, s);
 end
