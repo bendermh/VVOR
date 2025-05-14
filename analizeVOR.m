@@ -4,7 +4,7 @@
 % e = eye velocity array
 % h = head velocity array
 % s = Boolean, true if register is supresed VVOR false if VVOR
-function analize(t,e,h,s)
+function analizeVOR(t,e,h,s)
 
 %Draw figure considering screen size
 scrsz = get(groot,'ScreenSize');
@@ -171,36 +171,46 @@ else
 end
 hold off
 %axis square
-
-%Fourier plot
+%Fourier plot of head and eye velocities
 subplot(3,2,3)
 [fHead,P1Head] = fourier(h);
 [fEye,P1Eye] = fourier(e);
+
+% -------------------------------
+% Spectral Periodicity Index (SPI)
+% Ratio of dominant peak to total spectral energy
+% Values:
+%   ~1.0 → highly periodic (ideal sine wave)
+%   <0.5 → less periodic, irregular or noisy signal
+% -------------------------------
+SPI_head = max(P1Head) / sum(P1Head);
+SPI_eye  = max(P1Eye)  / sum(P1Eye);
+
+% -------------------------------
+% Spectral Signal-to-Noise Ratio (SNR) in dB
+% Compares dominant frequency power to remaining energy
+% Values:
+%   >10 dB → good periodic signal
+%   ~0–5 dB → weak or noisy periodicity
+% -------------------------------
+SNR_head = 10 * log10(max(P1Head) / (sum(P1Head) - max(P1Head)));
+SNR_eye  = 10 * log10(max(P1Eye)  / (sum(P1Eye)  - max(P1Eye)));
+
+% Dominant frequency for head signal
 [~,ixx] = max(P1Head);
 maxFreqHeadFour = fHead(ixx);
+
+% Plot head and eye spectrum
 hold on
-stem(fHead,P1Head,'b');
-fourierTitle = strcat('Single-Side Amplitude Spectrum of Head and Eye (RAW) || Head Freq(Hz): ',num2str(maxFreqHeadFour));
+stem(fHead,P1Head,'b');  % Head spectrum
+fourierTitle = sprintf('Head Spectrum || Freq(Hz): %.2f | SPI: %.2f | SNR: %.1f dB', ...
+                       maxFreqHeadFour, SPI_head, SNR_head);
 title(fourierTitle)
 xlabel('f (Hz)')
 ylabel('|P1(f)|')
 xlim([0 5])
-stem(fEye,P1Eye,'r');
+stem(fEye,P1Eye,'r');  % Eye spectrum
 legend('Head','Eye')
-hold off
-
-%Fourier gain plot
-subplot(3,2,4)
-axis off
-hold on
-plotBar = bar([maxHeadPwrL maxEyeLPwr;maxHeadPwrR maxEyeRPwr],'hist');
-gainFtitle = strcat(['Fourier Gain || LEFT(1): ',num2str(leftFouGain),' - RIGHT(2): ',num2str(rightFouGain)]);
-title(gainFtitle)
-legend('Head','Eye','Location','eastoutside');
-if ~isOctave
-    plotBar(1).FaceColor = 'b';
-    plotBar(2).FaceColor = 'r';
-end
 hold off
 
 % For FourierGain debug purposes only (uncoment next section)
@@ -271,8 +281,20 @@ set(mTextBoxPR,'FontSize',10);
 set(mTextBoxPR,'HorizontalAlignment','left');
 set(mTextBoxPR,'Position',[20 1 1600 25]);
 set(figure1,'MenuBar','figure');
+resultSNR = sprintf('Spectral Metrics || SPI Head: %.2f | Eye: %.2f  ||  SNR Head: %.1f dB | Eye: %.1f dB', ...
+                     SPI_head, SPI_eye, SNR_head, SNR_eye);
+mTextBoxSNR = uicontrol(figure1,'style','text');
+set(mTextBoxSNR,'String',resultSNR);
+set(mTextBoxSNR,'FontSize',10);
+set(mTextBoxSNR,'HorizontalAlignment','left');
+set(mTextBoxSNR,'Position',[20 42 1600 20]);
 disp(resultG);
 disp(resultPR);
+% Console output for log/tracking
+disp(['Spectral Periodicity Index (SPI) — Head: ', num2str(SPI_head), ...
+      ' | Eye: ', num2str(SPI_eye)]);
+disp(['Spectral SNR (dB) — Head: ', num2str(SNR_head), ...
+      ' | Eye: ', num2str(SNR_eye)]);
 end
 
 
